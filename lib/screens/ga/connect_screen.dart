@@ -26,23 +26,28 @@ class _GaConnectScreenState extends State<GaConnectScreen> {
       );
       return;
     }
-    final user = FirebaseAuth.instance.currentUser!;
-    final idToken = await user.getIdToken();
-    final uri = Uri.https('accounts.google.com', '/o/oauth2/v2/auth', {
-      'client_id': clientId,
-      'redirect_uri': callbackUrl,
-      'response_type': 'code',
-      'scope': 'https://www.googleapis.com/auth/analytics.readonly',
-      'access_type': 'offline',
-      'prompt': 'consent',
-      'state': idToken,
-    });
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open Google authorization page.')),
-        );
+    setState(() { _loading = true; });
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final idToken = await user.getIdToken();
+      final uri = Uri.https('accounts.google.com', '/o/oauth2/v2/auth', {
+        'client_id': clientId,
+        'redirect_uri': callbackUrl,
+        'response_type': 'code',
+        'scope': 'https://www.googleapis.com/auth/analytics.readonly',
+        'access_type': 'offline',
+        'prompt': 'consent',
+        'state': idToken,
+      });
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open Google authorization page.')),
+          );
+        }
       }
+    } finally {
+      if (mounted) setState(() { _loading = false; });
     }
   }
 
