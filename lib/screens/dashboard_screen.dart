@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
-import 'stripe/connect_screen.dart';
+import 'ga/connect_screen.dart';
 import 'preferences_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -45,8 +45,8 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 28),
 
-                      // Stripe card
-                      _StripeCard(uid: user.uid),
+                      // Google Analytics card
+                      _GaCard(uid: user.uid),
                       const SizedBox(height: 14),
 
                       // Preferences card
@@ -167,36 +167,41 @@ class _UserMenu extends StatelessWidget {
 
 // ── Dashboard cards ────────────────────────────────────────────────────────────
 
-class _StripeCard extends StatelessWidget {
+class _GaCard extends StatelessWidget {
   final String uid;
-  const _StripeCard({required this.uid});
+  const _GaCard({required this.uid});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('stripe_accounts')
+          .collection('ga_connections')
           .where('userId', isEqualTo: uid)
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
-        final connected = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+        final docs = snapshot.hasData ? snapshot.data!.docs : [];
+        final connected = docs.isNotEmpty;
+        final propertyName = connected
+            ? (docs.first.data() as Map<String, dynamic>)['propertyName'] as String?
+            : null;
+        final ready = connected && propertyName != null;
         return IpSectionCard(
-          title: 'STRIPE',
-          trailing: _StatusPill(active: connected, label: connected ? 'Connected' : 'Not connected'),
+          title: 'GOOGLE ANALYTICS',
+          trailing: _StatusPill(active: ready, label: ready ? 'Connected' : 'Not connected'),
           child: Row(
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    connected ? 'Stripe account linked' : 'Connect your Stripe account',
+                    ready ? propertyName : 'Connect Google Analytics',
                     style: GoogleFonts.figtree(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    connected
-                        ? 'InboxPulse can read your revenue data'
+                    ready
+                        ? 'InboxPulse can read your website metrics'
                         : 'Required to generate your reports',
                     style: GoogleFonts.figtree(fontSize: 13, color: AppColors.textSecondary),
                   ),
@@ -204,8 +209,8 @@ class _StripeCard extends StatelessWidget {
               ),
               const Spacer(),
               _CardAction(
-                label: connected ? 'Manage' : 'Connect',
-                onTap: () => Navigator.push(context, _fadeRoute(const ConnectScreen())),
+                label: ready ? 'Manage' : 'Connect',
+                onTap: () => Navigator.push(context, _fadeRoute(const GaConnectScreen())),
               ),
             ],
           ),

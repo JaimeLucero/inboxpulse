@@ -19,21 +19,21 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   int _dayOfWeek = 1;
   TimeOfDay _timeOfDay = const TimeOfDay(hour: 8, minute: 0);
   Map<String, bool> _metrics = {
-    'revenue': true,
-    'mrr': true,
-    'new_customers': true,
-    'churned_customers': true,
-    'aov': true,
+    'users': true,
+    'sessions': true,
+    'pageviews': true,
+    'bounce_rate': true,
+    'avg_session_duration': true,
   };
   bool _emailEnabled = true;
   String? _existingDocId;
 
   static const _metricLabels = {
-    'revenue': ('Daily Revenue', Icons.trending_up_rounded),
-    'mrr': ('MRR', Icons.bar_chart_rounded),
-    'new_customers': ('New Customers', Icons.person_add_rounded),
-    'churned_customers': ('Churned Customers', Icons.person_remove_rounded),
-    'aov': ('Avg Order Value', Icons.shopping_cart_outlined),
+    'users': ('Users', Icons.people_outline_rounded),
+    'sessions': ('Sessions', Icons.repeat_rounded),
+    'pageviews': ('Pageviews', Icons.article_outlined),
+    'bounce_rate': ('Bounce Rate', Icons.logout_rounded),
+    'avg_session_duration': ('Avg. Session Duration', Icons.timer_outlined),
   };
 
   static const _days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];

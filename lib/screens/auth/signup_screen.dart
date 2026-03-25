@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../theme.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -27,6 +29,35 @@ class _SignupScreenState extends State<SignupScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signUpWithGoogle() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      UserCredential credential;
+      if (kIsWeb) {
+        credential = await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+      } else {
+        final result = await GoogleSignIn.instance.authenticate();
+        final googleCredential = GoogleAuthProvider.credential(idToken: result.authentication.idToken);
+        credential = await FirebaseAuth.instance.signInWithCredential(googleCredential);
+      }
+      final user = credential.user!;
+      // Create Firestore doc if it's a new user
+      if (credential.additionalUserInfo?.isNewUser ?? false) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'email': user.email ?? '',
+          'displayName': user.displayName ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() { _error = e.message; });
+    } catch (e) {
+      setState(() { _error = e.toString(); });
+    } finally {
+      if (mounted) setState(() { _loading = false; });
+    }
   }
 
   Future<void> _signUp() async {
@@ -136,6 +167,10 @@ class _SignupScreenState extends State<SignupScreen> {
                                             : const Text('Create account'),
                                       ),
                                     ),
+                                    const SizedBox(height: 12),
+                                    _DividerRow(),
+                                    const SizedBox(height: 12),
+                                    _GoogleButton(loading: _loading, onPressed: _signUpWithGoogle),
                                   ],
                                 ),
                               ),
@@ -308,6 +343,46 @@ class _ErrorBanner extends StatelessWidget {
           Expanded(child: Text(message, style: GoogleFonts.figtree(fontSize: 13, color: AppColors.error))),
         ],
       ),
+    );
+  }
+}
+
+class _GoogleButton extends StatelessWidget {
+  final bool loading;
+  final VoidCallback onPressed;
+  const _GoogleButton({required this.loading, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton(
+        onPressed: loading ? null : onPressed,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('G', style: GoogleFonts.figtree(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFF4285F4))),
+            const SizedBox(width: 10),
+            Text('Continue with Google', style: GoogleFonts.figtree(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DividerRow extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider(color: AppColors.border, thickness: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('or', style: GoogleFonts.figtree(fontSize: 12, color: AppColors.textMuted)),
+        ),
+        const Expanded(child: Divider(color: AppColors.border, thickness: 1)),
+      ],
     );
   }
 }

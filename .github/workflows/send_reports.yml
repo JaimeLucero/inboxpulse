@@ -1,0 +1,32 @@
+name: Send Reports
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour UTC
+  workflow_dispatch:       # Manual trigger for testing
+
+jobs:
+  send:
+    name: Send scheduled reports
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install firebase-admin requests resend
+
+      - name: Run send_reports
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: python .github/scripts/send_reports.py
