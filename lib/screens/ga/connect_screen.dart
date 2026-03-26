@@ -14,8 +14,29 @@ class GaConnectScreen extends StatefulWidget {
   State<GaConnectScreen> createState() => _GaConnectScreenState();
 }
 
-class _GaConnectScreenState extends State<GaConnectScreen> {
+class _GaConnectScreenState extends State<GaConnectScreen>
+    with WidgetsBindingObserver {
   bool _loading = false;
+  bool _awaitingReturn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awaitingReturn) {
+      setState(() { _awaitingReturn = false; });
+    }
+  }
 
   Future<void> _connectGa() async {
     final clientId = dotenv.env['GOOGLE_OAUTH_CLIENT_ID'] ?? '';
@@ -39,7 +60,10 @@ class _GaConnectScreenState extends State<GaConnectScreen> {
         'prompt': 'consent',
         'state': idToken,
       });
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (launched) {
+        if (mounted) setState(() { _awaitingReturn = true; });
+      } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Could not open Google authorization page.')),
@@ -227,7 +251,71 @@ class _GaConnectScreenState extends State<GaConnectScreen> {
                                       ),
                                     ),
                                   )
-                                else if (connected)
+                                else if (needsPicker && properties.isEmpty) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.errorDim,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: AppColors.error
+                                              .withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.warning_amber_rounded,
+                                            size: 16, color: AppColors.error),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            'No GA4 properties found. Make sure the Google Analytics Admin API is enabled in your Google Cloud project.',
+                                            style: GoogleFonts.figtree(
+                                                fontSize: 13,
+                                                color: AppColors.error,
+                                                height: 1.4),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: SizedBox(
+                                          height: 44,
+                                          child: FilledButton(
+                                            onPressed:
+                                                _loading ? null : _connectGa,
+                                            child: Text('Reconnect',
+                                                style: GoogleFonts.figtree(
+                                                    fontWeight:
+                                                        FontWeight.w600)),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      SizedBox(
+                                        height: 44,
+                                        child: OutlinedButton(
+                                          onPressed: _loading
+                                              ? null
+                                              : () => _disconnect(docId!),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.error,
+                                            side: BorderSide(
+                                                color: AppColors.error
+                                                    .withValues(alpha: 0.4)),
+                                          ),
+                                          child: Text('Disconnect',
+                                              style: GoogleFonts.figtree(
+                                                  fontWeight: FontWeight.w600)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ] else if (connected)
                                   SizedBox(
                                     height: 44,
                                     child: OutlinedButton(
@@ -254,25 +342,70 @@ class _GaConnectScreenState extends State<GaConnectScreen> {
                                                   fontWeight: FontWeight.w600)),
                                     ),
                                   )
-                                else
-                                  SizedBox(
-                                    height: 48,
-                                    child: FilledButton(
-                                      onPressed: _loading ? null : _connectGa,
+                                else ...[
+                                  if (_awaitingReturn) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accentDim,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                            color: AppColors.accentMid),
+                                      ),
                                       child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
                                         children: [
-                                          const Icon(Icons.link_rounded,
-                                              size: 18),
-                                          const SizedBox(width: 8),
-                                          Text('Connect Google Analytics',
+                                          const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: AppColors.accent),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              'Authorize in your browser, then return here.',
                                               style: GoogleFonts.figtree(
-                                                  fontWeight: FontWeight.w600)),
+                                                  fontSize: 13,
+                                                  color: AppColors.accent),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      height: 44,
+                                      child: OutlinedButton(
+                                        onPressed: () => setState(
+                                            () { _awaitingReturn = false; }),
+                                        child: Text('Back to Connect',
+                                            style: GoogleFonts.figtree(
+                                                fontWeight: FontWeight.w600)),
+                                      ),
+                                    ),
+                                  ] else
+                                    SizedBox(
+                                      height: 48,
+                                      child: FilledButton(
+                                        onPressed: _loading ? null : _connectGa,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(Icons.link_rounded,
+                                                size: 18),
+                                            const SizedBox(width: 8),
+                                            Text('Connect Google Analytics',
+                                                style: GoogleFonts.figtree(
+                                                    fontWeight:
+                                                        FontWeight.w600)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ],
                             ),
                           ),

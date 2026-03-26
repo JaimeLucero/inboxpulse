@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
-import 'ga/connect_screen.dart';
-import 'preferences_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -182,35 +181,39 @@ class _GaCard extends StatelessWidget {
       builder: (context, snapshot) {
         final docs = snapshot.hasData ? snapshot.data!.docs : [];
         final connected = docs.isNotEmpty;
-        final propertyName = connected
-            ? (docs.first.data() as Map<String, dynamic>)['propertyName'] as String?
-            : null;
+        final data = connected ? docs.first.data() as Map<String, dynamic> : null;
+        final propertyName = data?['propertyName'] as String?;
+        final propertyId = data?['propertyId'] as String?;
         final ready = connected && propertyName != null;
+        final needsPicker = connected && propertyId == null;
+        final String statusLabel = ready ? 'Connected' : (needsPicker ? 'Action needed' : 'Not connected');
+        final String title = ready ? propertyName! : (needsPicker ? 'Select a property' : 'Connect Google Analytics');
+        final String subtitle = ready
+            ? 'InboxPulse can read your website metrics'
+            : (needsPicker ? 'Tap Manage to pick your GA4 property' : 'Required to generate your reports');
         return IpSectionCard(
           title: 'GOOGLE ANALYTICS',
-          trailing: _StatusPill(active: ready, label: ready ? 'Connected' : 'Not connected'),
+          trailing: _StatusPill(active: ready, label: statusLabel),
           child: Row(
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    ready ? propertyName : 'Connect Google Analytics',
+                    title,
                     style: GoogleFonts.figtree(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    ready
-                        ? 'InboxPulse can read your website metrics'
-                        : 'Required to generate your reports',
+                    subtitle,
                     style: GoogleFonts.figtree(fontSize: 13, color: AppColors.textSecondary),
                   ),
                 ],
               ),
               const Spacer(),
               _CardAction(
-                label: ready ? 'Manage' : 'Connect',
-                onTap: () => Navigator.push(context, _fadeRoute(const GaConnectScreen())),
+                label: ready ? 'Manage' : (needsPicker ? 'Manage' : 'Connect'),
+                onTap: () => context.push('/ga'),
               ),
             ],
           ),
@@ -263,7 +266,7 @@ class _PreferencesCard extends StatelessWidget {
               const Spacer(),
               _CardAction(
                 label: hasPrefs ? 'Edit' : 'Set up',
-                onTap: () => Navigator.push(context, _fadeRoute(const PreferencesScreen())),
+                onTap: () => context.push('/preferences'),
               ),
             ],
           ),
@@ -419,9 +422,3 @@ class _CardAction extends StatelessWidget {
   }
 }
 
-Route _fadeRoute(Widget page) => PageRouteBuilder(
-      pageBuilder: (_, _, _) => page,
-      transitionsBuilder: (_, anim, _, child) =>
-          FadeTransition(opacity: anim, child: child),
-      transitionDuration: const Duration(milliseconds: 180),
-    );

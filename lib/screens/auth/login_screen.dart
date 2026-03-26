@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../theme.dart';
@@ -172,6 +173,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 16),
+                              GestureDetector(
+                                onTap: () => context.push('/privacy'),
+                                child: Text(
+                                  'Privacy Policy',
+                                  style: GoogleFonts.figtree(
+                                    fontSize: 13,
+                                    color: AppColors.textMuted,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: AppColors.textMuted,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -223,7 +237,7 @@ class _BrandPanel extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Connect Stripe in two minutes. Get your key metrics emailed on your schedule — no dashboards, no logins.',
+              'Connect Google Analytics in two minutes. Get your key metrics emailed on your schedule — no dashboards, no logins.',
               style: GoogleFonts.figtree(
                 fontSize: 15,
                 color: AppColors.textSecondary,
@@ -232,7 +246,7 @@ class _BrandPanel extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             ...[
-              ('📈', 'MRR, revenue, and churn at a glance'),
+              ('📊', 'Traffic, sessions, and engagement at a glance'),
               ('⏱', 'Daily or weekly — you choose'),
               ('📬', 'Straight to your inbox, beautifully formatted'),
             ].map((item) => Padding(
@@ -250,7 +264,7 @@ class _BrandPanel extends StatelessWidget {
             )),
             const Spacer(),
             Text(
-              '© 2025 InboxPulse',
+              '© 2026 InboxPulse',
               style: GoogleFonts.figtree(fontSize: 12, color: AppColors.textMuted),
             ),
           ],
